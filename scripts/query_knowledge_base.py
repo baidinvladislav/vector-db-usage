@@ -15,7 +15,11 @@ from src.qdrant_store import QdrantStore  # noqa: E402
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Query Qdrant knowledge base.")
 
-    parser.add_argument("query", help="Search text, e.g. 'река Нева длина'")
+    parser.add_argument(
+        "--query",
+        default="Какая длина реки Нева?",
+        help="Search text, e.g. 'река Нева длина'",
+    )
     parser.add_argument(
         "-k",
         "--limit",

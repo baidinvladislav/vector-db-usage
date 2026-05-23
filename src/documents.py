@@ -21,11 +21,14 @@ def _first_line_title(text: str, fallback: str) -> str:
     return fallback
 
 
-def load_text_files(docs_dir: Path) -> list[tuple[str, Path, str]]:
+def load_text_files(docs_dir: Path, limit: int = 3) -> list[tuple[str, Path, str]]:
     """ Загружает текста документов """
     entries: list[tuple[str, Path, str]] = []
 
     for path in sorted(docs_dir.glob("*.txt")):
+        if len(entries) >= limit:
+            return entries
+
         doc_id = path.stem
         text = path.read_text(encoding="utf-8", errors="replace").strip()
         if text:
