@@ -1,9 +1,7 @@
-# vector-db-usage
+# Описание сервиса
+RAG базе знаний из документов, хранящихся в директории `files/`, которые были загружены в Qdrant.
 
-RAG knowledge base over text documents in `files/`, stored in [Qdrant](https://qdrant.tech/).
-
-## Setup
-
+## Установка
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -12,29 +10,28 @@ cp .env.example .env
 docker compose up -d
 ```
 
-## Prepare knowledge base
-
-Indexes all `.txt` files: splits into overlapping chunks, embeds with a multilingual model, upserts into Qdrant with metadata (`doc_id`, `title`, `source_path`, `text`).
+## Подготовка базы знаний
+1. Находит все`.txt` файлы в директории `files/`.
+2. Делит текст на чанки.
+2. Векторизует в эмбеддинги с помощью модели эмбеддера.
+3. Вставляет в Qdrant с метаданными: (`doc_id`, `title`, `source_path`, `text`).
 
 ```bash
 python scripts/prepare_knowledge_base.py
 ```
 
-Quick test on a few documents:
-
+Быстрый тест на нескольких документах:
 ```bash
 python scripts/prepare_knowledge_base.py --limit-docs 5
 ```
 
-Recreate the collection from scratch:
-
+Пересоздать коллекцию эмбеддингов заново:
 ```bash
 python scripts/prepare_knowledge_base.py --recreate
 ```
 
-## Query (search)
-
-After indexing, search by meaning (works in Russian and English):
+## Запрос (поиск)
+После индексации документов можем найти релевантный ответ в базе знаний:
 
 ```bash
 python scripts/query_knowledge_base.py "длина реки Нева"
@@ -42,18 +39,17 @@ python scripts/query_knowledge_base.py "история Санкт-Петербу
 python scripts/query_knowledge_base.py "пороги" --doc-id 101
 ```
 
-Results show similarity score, document id, title, and matching text chunk.
+Результат показывает семантический рейтинг, идентификатор документа и соответствующий чанк документа.
 
-Qdrant UI (optional): open http://localhost:6333/dashboard to inspect the collection.
+Веб-интерфейс базы знаний Qdrant находится по адресу http://localhost:6333/dashboard.
 
-## Configuration
+## Конфигурация
+Конфиги находятся в файле `.env.example`.
 
-See `.env.example`. Main variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP API |
-| `QDRANT_COLLECTION` | `knowledge_base` | Collection name |
-| `EMBEDDING_MODEL` | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | FastEmbed model (multilingual, good for Russian) |
-| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `800` / `120` | Text splitting |
-| `DOCS_DIR` | `files` | Folder with `.txt` documents |
+| Variable                       | Default                                                       | Description                     |
+|--------------------------------|---------------------------------------------------------------|---------------------------------|
+| `QDRANT_URL`                   | `http://localhost:6333`                                       | Адрес Qdrant                    |
+| `QDRANT_COLLECTION`            | `knowledge_base`                                              | Название коллекции              |
+| `EMBEDDING_MODEL`              | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Модель эмбеддера                |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `800` / `120`                                                 | Параметры чанкирования          |
+| `DOCS_DIR`                     | `files`                                                       | Директория с `.txt` документами |
