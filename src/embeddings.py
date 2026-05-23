@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from fastembed import TextEmbedding
 
 
@@ -14,6 +12,7 @@ class EmbeddingService:
         return self._model_name
 
     def embed_passages(self, texts: list[str]) -> list[list[float]]:
+        """ Переводит текст в эмбеддинги """
         if self._uses_e5_prefix:
             vectors = list(self._model.passage_embed(texts))
         else:
