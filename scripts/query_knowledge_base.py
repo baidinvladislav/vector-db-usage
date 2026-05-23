@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""Search the Qdrant knowledge base by natural-language query."""
-
-from __future__ import annotations
-
 import argparse
 import sys
 from pathlib import Path
@@ -19,6 +14,7 @@ from src.qdrant_store import QdrantStore  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Query Qdrant knowledge base.")
+
     parser.add_argument("query", help="Search text, e.g. 'река Нева длина'")
     parser.add_argument(
         "-k",
@@ -32,10 +28,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Search only within one document (file stem, e.g. 101).",
     )
+
     return parser.parse_args()
 
 
 def main() -> None:
+    """ Поиск релевантного ответа на запрос пользователя в векторной БД """
     args = parse_args()
     settings = Settings.from_env()
 

@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 @dataclass(frozen=True)
 class Settings:
+    """ Настройка конфигурации приложения """
     qdrant_url: str
     qdrant_api_key: str | None
     collection_name: str

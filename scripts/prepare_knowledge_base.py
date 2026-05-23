@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""Load docs from files/, embed them, and upsert into Qdrant."""
-
-from __future__ import annotations
-
 import argparse
 import sys
 from pathlib import Path
@@ -20,9 +15,8 @@ from src.qdrant_store import QdrantStore  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Prepare Qdrant knowledge base from text files."
-    )
+    parser = argparse.ArgumentParser(description="Prepare Qdrant knowledge base from text files.")
+
     parser.add_argument(
         "--recreate",
         action="store_true",
@@ -34,6 +28,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Process only the first N documents (for quick tests).",
     )
+
     return parser.parse_args()
 
 
@@ -52,16 +47,19 @@ def main() -> None:
         chunk_overlap=settings.chunk_overlap,
     )
 
+    # обработка, если указан лимит документов
     if args.limit_docs is not None:
         limited_ids: list[str] = []
         seen: set[str] = set()
         for chunk in all_chunks:
             if chunk.doc_id in seen:
                 continue
+
             seen.add(chunk.doc_id)
             limited_ids.append(chunk.doc_id)
             if len(limited_ids) >= args.limit_docs:
                 break
+
         allowed = set(limited_ids)
         all_chunks = [c for c in all_chunks if c.doc_id in allowed]
 

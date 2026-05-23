@@ -21,6 +21,7 @@ class EmbeddingService:
         return [vector.tolist() for vector in vectors]
 
     def embed_query(self, text: str) -> list[float]:
+        """ Переводит пользователький запрос в эмбеддинг """
         if self._uses_e5_prefix:
             vector = next(self._model.query_embed([text]))
         else:

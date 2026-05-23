@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import uuid
 from typing import Iterable
 
@@ -15,22 +13,11 @@ def _point_id(doc_id: str, chunk_index: int) -> str:
 
 
 class QdrantStore:
-    def __init__(
-        self,
-        *,
-        url: str,
-        api_key: str | None,
-        collection_name: str,
-    ) -> None:
+    def __init__(self, *, url: str, api_key: str | None, collection_name: str) -> None:
         self.collection_name = collection_name
         self.client = QdrantClient(url=url, api_key=api_key)
 
-    def ensure_collection(
-        self,
-        *,
-        vector_size: int,
-        recreate: bool,
-    ) -> None:
+    def ensure_collection(self, *, vector_size: int, recreate: bool) -> None:
         exists = self.client.collection_exists(self.collection_name)
         if exists and recreate:
             self.client.delete_collection(self.collection_name)
@@ -45,13 +32,7 @@ class QdrantStore:
                 ),
             )
 
-    def upsert_chunks(
-        self,
-        chunks: Iterable[DocumentChunk],
-        vectors: list[list[float]],
-        *,
-        embedding_model: str,
-    ) -> int:
+    def upsert_chunks(self, chunks: Iterable[DocumentChunk], vectors: list[list[float]], *, embedding_model: str) -> int:
         chunk_list = list(chunks)
         if len(chunk_list) != len(vectors):
             raise ValueError("chunks and vectors length mismatch")
@@ -76,22 +57,12 @@ class QdrantStore:
         self.client.upsert(collection_name=self.collection_name, points=points)
         return len(points)
 
-    def search(
-        self,
-        query_vector: list[float],
-        *,
-        limit: int = 5,
-        doc_id: str | None = None,
-    ) -> list[ScoredPoint]:
+    def search(self, query_vector: list[float], *, limit: int = 5, doc_id: str | None = None) -> list[ScoredPoint]:
+        """ Ищет релевантные чанки в векторной БД по эмбеддингу запроса пользователя """
         query_filter = None
         if doc_id is not None:
             query_filter = rest.Filter(
-                must=[
-                    rest.FieldCondition(
-                        key="doc_id",
-                        match=rest.MatchValue(value=doc_id),
-                    )
-                ]
+                must=[rest.FieldCondition(key="doc_id", match=rest.MatchValue(value=doc_id))]
             )
 
         response = self.client.query_points(
@@ -106,6 +77,7 @@ class QdrantStore:
     def collection_info(self) -> rest.CollectionInfo | None:
         if not self.client.collection_exists(self.collection_name):
             return None
+
         return self.client.get_collection(self.collection_name)
 
     def points_count(self) -> int:
