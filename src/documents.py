@@ -1,5 +1,8 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
+
+_WIKI_SECTION = re.compile(r"\n(?==+ [^=].*? ==\n)")
 
 
 @dataclass(frozen=True)
@@ -12,33 +15,35 @@ class DocumentChunk:
 
 
 def _first_line_title(text: str, fallback: str) -> str:
-    """ Создаёт заголовок файла """
     for line in text.splitlines():
         stripped = line.strip()
         if stripped:
             return stripped[:500]
-
     return fallback
 
 
-def load_text_files(docs_dir: Path, limit: int = 3) -> list[tuple[str, Path, str]]:
-    """ Загружает текста документов """
+def load_text_files(
+    docs_dir: Path,
+    *,
+    limit: int | None = None,
+) -> list[tuple[str, Path, str]]:
     entries: list[tuple[str, Path, str]] = []
-
     for path in sorted(docs_dir.glob("*.txt")):
-        if len(entries) >= limit:
-            return entries
-
         doc_id = path.stem
         text = path.read_text(encoding="utf-8", errors="replace").strip()
         if text:
             entries.append((doc_id, path, text))
-
+        if limit is not None and len(entries) >= limit:
+            break
     return entries
 
 
-def chunk_text(text: str, *, chunk_size: int, chunk_overlap: int) -> list[str]:
-    """ Режет текст на чанки """
+def chunk_text(
+    text: str,
+    *,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> list[str]:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
 
@@ -65,15 +70,54 @@ def chunk_text(text: str, *, chunk_size: int, chunk_overlap: int) -> list[str]:
     return chunks
 
 
-def build_chunks(docs_dir: Path, *, chunk_size: int, chunk_overlap: int) -> list[DocumentChunk]:
-    """ Формируе чанки для векторной БД """
-    documents = load_text_files(docs_dir)
+def _split_wiki_sections(text: str) -> list[str]:
+    parts = _WIKI_SECTION.split(text)
+    if len(parts) <= 1:
+        return [text]
+    return [part.strip() for part in parts if part.strip()]
 
+
+def _chunk_for_embedding(
+    text: str,
+    *,
+    title: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> list[str]:
+    sections = _split_wiki_sections(text)
+    raw_chunks: list[str] = []
+    for section in sections:
+        raw_chunks.extend(
+            chunk_text(section, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        )
+    if not raw_chunks:
+        raw_chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+    prefixed: list[str] = []
+    for chunk in raw_chunks:
+        body = chunk if chunk.startswith(title) else f"{title}\n\n{chunk}"
+        prefixed.append(body)
+    return prefixed
+
+
+def build_chunks(
+    docs_dir: Path,
+    *,
+    chunk_size: int,
+    chunk_overlap: int,
+    limit: int | None = None,
+) -> list[DocumentChunk]:
     result: list[DocumentChunk] = []
-    for doc_id, path, text in documents:
+    for doc_id, path, text in load_text_files(docs_dir, limit=limit):
         title = _first_line_title(text, fallback=doc_id)
-        chunks = chunk_text(text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        for index, chunk in enumerate(chunks):
+        for index, chunk in enumerate(
+            _chunk_for_embedding(
+                text,
+                title=title,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+        ):
             result.append(
                 DocumentChunk(
                     doc_id=doc_id,
