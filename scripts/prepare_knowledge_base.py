@@ -20,13 +20,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--recreate",
         action="store_true",
-        default=True,
         help="Drop and recreate the collection before ingest.",
     )
     parser.add_argument(
         "--limit-docs",
         type=int,
-        default=3,
+        default=None,
         help="Process only the first N documents (for quick tests).",
     )
 
@@ -46,7 +45,10 @@ def main() -> None:
         settings.docs_dir,
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
+        limit=args.limit_docs,
     )
+    if not all_chunks:
+        raise SystemExit(f"No .txt documents found in {settings.docs_dir}")
 
     doc_count = len({c.doc_id for c in all_chunks})
     print(f"Documents: {doc_count}, chunks: {len(all_chunks)}")

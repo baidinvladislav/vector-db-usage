@@ -17,22 +17,28 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--query",
-        default="Какая длина реки Нева?",
-        help="Search text, e.g. 'река Нева длина'",
+        required=True,
+        help="Search text",
     )
     parser.add_argument(
         "-k",
         "--limit",
         type=int,
         default=5,
-        help="Number of chunks to return (default: 5).",
+        help="Final number of chunks after reranking (default: 5).",
     )
     parser.add_argument(
-        "--doc-id",
+        "--fetch-k",
+        type=int,
         default=None,
-        help="Search only within one document (file stem, e.g. 101).",
+        help="Candidates before rerank (default: from .env, auto-scaled by index size).",
     )
-
+    parser.add_argument("--doc-id", default=None, help="Restrict search to one document id.")
+    parser.add_argument(
+        "--no-hybrid",
+        action="store_true",
+        help="Vector search only (no keyword merge).",
+    )
     return parser.parse_args()
 
 

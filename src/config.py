@@ -21,6 +21,9 @@ class Settings:
     chunk_overlap: int
     batch_size: int
     recreate_collection: bool
+    reranker_model: str
+    rerank_fetch_k: int
+    hybrid_search_enabled: bool
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,8 +40,14 @@ class Settings:
                 "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
             ),
             docs_dir=docs_dir,
-            chunk_size=int(os.getenv("CHUNK_SIZE", "800")),
-            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "120")),
+            chunk_size=int(os.getenv("CHUNK_SIZE", "1200")),
+            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "150")),
             batch_size=int(os.getenv("BATCH_SIZE", "64")),
             recreate_collection=os.getenv("RECREATE_COLLECTION", "false").lower() in ("1", "true", "yes"),
+            reranker_model=os.getenv(
+                "RERANKER_MODEL",
+                "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+            ),
+            rerank_fetch_k=int(os.getenv("RERANK_FETCH_K", "50")),
+            hybrid_search_enabled=os.getenv("HYBRID_SEARCH_ENABLED", "true").lower() in ("1", "true", "yes"),
         )
