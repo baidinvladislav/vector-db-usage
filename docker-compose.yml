@@ -1,4 +1,14 @@
 services:
+  backend-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: rag-backend-api
+    depends_on:
+      - qdrant
+    ports:
+      - "8000:8000"
+
   qdrant:
     image: qdrant/qdrant:v1.12.5
     ports:

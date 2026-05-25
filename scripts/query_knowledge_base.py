@@ -7,9 +7,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.config import Settings  # noqa: E402
+from src.config import AppSettings  # noqa: E402
 from src.embeddings import EmbeddingService  # noqa: E402
-from src.qdrant_store import QdrantStore  # noqa: E402
+from src.qdrant_store import QdrantRepository  # noqa: E402
 from src.reranker import RerankerService  # noqa: E402
 
 
@@ -40,10 +40,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Vector search only (no keyword merge).",
     )
+
     return parser.parse_args()
 
 
-def _default_fetch_k(settings: Settings, points_count: int) -> int:
+def _default_fetch_k(settings: AppSettings, points_count: int) -> int:
     base = settings.rerank_fetch_k if settings.rerank_fetch_k > 0 else 20
     if points_count > 10_000:
         return max(base, 50)
@@ -55,9 +56,9 @@ def _default_fetch_k(settings: Settings, points_count: int) -> int:
 def main() -> None:
     """ Поиск релевантного ответа на запрос пользователя в векторной БД """
     args = parse_args()
-    settings = Settings.from_env()
+    settings = AppSettings.from_env()
 
-    store = QdrantStore(
+    store = QdrantRepository(
         url=settings.qdrant_url,
         api_key=settings.qdrant_api_key,
         collection_name=settings.collection_name,
@@ -76,7 +77,7 @@ def main() -> None:
 
     store.ensure_text_index()
 
-    embedder = EmbeddingService(settings.embedding_model)
+    embedder = EmbeddingService(settings.embedder_model)
     query_vector = embedder.embed_query(args.query)
 
     if use_hybrid:
@@ -107,7 +108,7 @@ def main() -> None:
     for rank, item in enumerate(results, start=1):
         payload = item.point.payload or {}
         _print_hit(
-            rank,
+            rank=rank,
             doc_id=payload.get("doc_id", ""),
             chunk_index=payload.get("chunk_index", ""),
             title=payload.get("title", ""),

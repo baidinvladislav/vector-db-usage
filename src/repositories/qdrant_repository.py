@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 from typing import Iterable
 
 from qdrant_client import QdrantClient
@@ -6,17 +7,18 @@ from qdrant_client.http import models as rest
 from qdrant_client.http.models import ScoredPoint
 
 from src.documents import DocumentChunk
-from src.retrieval import extract_keywords, reciprocal_rank_fusion
+from src.services.retrieval_service import RetrievalService
 
 
 def _point_id(doc_id: str, chunk_index: int) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{doc_id}:{chunk_index}"))
 
 
-class QdrantStore:
-    def __init__(self, *, url: str, api_key: str | None, collection_name: str) -> None:
-        self.collection_name = collection_name
-        self.client = QdrantClient(url=url, api_key=api_key)
+@dataclass
+class QdrantRepository:
+    collection_name: str
+    client: QdrantClient
+    retrieval_service: RetrievalService
 
     def ensure_collection(self, *, vector_size: int, recreate: bool) -> None:
         exists = self.client.collection_exists(self.collection_name)
@@ -112,7 +114,7 @@ class QdrantStore:
         limit: int,
         doc_id: str | None = None,
     ) -> list[ScoredPoint]:
-        keywords = extract_keywords(query_text)
+        keywords = self.retrieval_service.extract_keywords(query_text)
         if not keywords:
             return []
 
@@ -155,7 +157,7 @@ class QdrantStore:
         keyword_hits = self.keyword_search(query_text, limit=limit, doc_id=doc_id)
         if not keyword_hits:
             return vector_hits
-        return reciprocal_rank_fusion([vector_hits, keyword_hits], limit=limit)
+        return self.retrieval_service.reciprocal_rank_fusion([vector_hits, keyword_hits], limit=limit)
 
     def collection_info(self) -> rest.CollectionInfo | None:
         if not self.client.collection_exists(self.collection_name):

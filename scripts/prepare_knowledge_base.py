@@ -8,10 +8,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.config import Settings  # noqa: E402
+from src.shared.settings import AppSettings  # noqa: E402
 from src.documents import build_chunks  # noqa: E402
-from src.embeddings import EmbeddingService  # noqa: E402
-from src.qdrant_store import QdrantStore  # noqa: E402
+from src.services.embedder_service import EmbedderService  # noqa: E402
+from src.repositories.qdrant_repository import QdrantRepository  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,8 +33,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """ Векторизует документы в базу знаний """
     args = parse_args()
-    settings = Settings.from_env()
+    settings = AppSettings.from_env()
     recreate = settings.recreate_collection or args.recreate
 
     if not settings.docs_dir.is_dir():
@@ -42,7 +43,7 @@ def main() -> None:
 
     print(f"Loading documents from {settings.docs_dir} ...")
     all_chunks = build_chunks(
-        settings.docs_dir,
+        docs_dir=settings.docs_dir,
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
         limit=args.limit_docs,
@@ -53,8 +54,8 @@ def main() -> None:
     doc_count = len({c.doc_id for c in all_chunks})
     print(f"Documents: {doc_count}, chunks: {len(all_chunks)}")
 
-    embedder = EmbeddingService(settings.embedding_model)
-    store = QdrantStore(
+    embedder = EmbedderService(settings.embedder_model)
+    store = QdrantRepository(
         url=settings.qdrant_url,
         api_key=settings.qdrant_api_key,
         collection_name=settings.collection_name,
@@ -74,8 +75,8 @@ def main() -> None:
         batch = all_chunks[start : start + batch_size]
         vectors = embedder.embed_passages([c.text for c in batch])
         total_upserted += store.upsert_chunks(
-            batch,
-            vectors,
+            chunks=batch,
+            vectors=vectors,
             embedding_model=embedder.model_name,
         )
 

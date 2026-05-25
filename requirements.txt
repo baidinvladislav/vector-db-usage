@@ -3,3 +3,4 @@ fastembed>=0.4.0
 python-dotenv>=1.0.0
 tqdm>=4.66.0
 sentence-transformers>=3.0.0
+fastapi==0.112.2

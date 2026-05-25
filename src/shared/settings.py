@@ -10,13 +10,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 @dataclass(frozen=True)
-class Settings:
+class AppSettings:
     """ Настройка конфигурации приложения """
+
     qdrant_url: str
     qdrant_api_key: str | None
     collection_name: str
-    embedding_model: str
+    embedder_model: str
     docs_dir: Path
+    docs_limit: int
     chunk_size: int
     chunk_overlap: int
     batch_size: int
@@ -24,9 +26,12 @@ class Settings:
     reranker_model: str
     rerank_fetch_k: int
     hybrid_search_enabled: bool
+    app_name: str = "Wikipedia RAG application"
+    app_version: str = "v0.1.0"
+    llm_model: str = ""
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> "AppSettings":
         docs_dir = Path(os.getenv("DOCS_DIR", "files"))
         if not docs_dir.is_absolute():
             docs_dir = PROJECT_ROOT / docs_dir
@@ -35,11 +40,12 @@ class Settings:
             qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
             qdrant_api_key=os.getenv("QDRANT_API_KEY") or None,
             collection_name=os.getenv("QDRANT_COLLECTION", "knowledge_base"),
-            embedding_model=os.getenv(
+            embedder_model=os.getenv(
                 "EMBEDDING_MODEL",
                 "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
             ),
             docs_dir=docs_dir,
+            docs_limit=int(os.getenv("DOCS_LIMIT", "3")),
             chunk_size=int(os.getenv("CHUNK_SIZE", "1200")),
             chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "150")),
             batch_size=int(os.getenv("BATCH_SIZE", "64")),

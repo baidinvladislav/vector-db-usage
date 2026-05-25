@@ -11,14 +11,14 @@ class RankedHit:
     rerank_score: float
 
 
+@dataclass
 class RerankerService:
-    def __init__(self, model_name: str) -> None:
-        self._model = CrossEncoder(model_name)
-        self._model_name = model_name
+    model: CrossEncoder
+    model_name: str
 
     @property
     def model_name(self) -> str:
-        return self._model_name
+        return self.model_name
 
     def rerank(
         self,
@@ -31,7 +31,7 @@ class RerankerService:
             return []
 
         pairs = [[query, (hit.payload or {}).get("text", "")] for hit in hits]
-        scores = self._model.predict(pairs)
+        scores = self.model.predict(pairs)
 
         reranked = sorted(
             zip(hits, scores),
