@@ -3,12 +3,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
-
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src /app/src
-COPY files /app/data
+COPY files /app/files
 
 ENV PYTHONPATH="/app"
+ENV DOCS_DIR="/app/files"
+ENV QDRANT_URL="http://qdrant:6333"
 
 CMD ["uvicorn", "src.presentation.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

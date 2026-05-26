@@ -2,31 +2,21 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.domain.models import DocumentChunk
+
 _WIKI_SECTION = re.compile(r"\n(?==+ [^=].*? ==\n)")
-
-
-@dataclass(frozen=True)
-class DocumentChunk:
-    doc_id: str
-    source_path: str
-    title: str
-    chunk_index: int
-    text: str
 
 
 @dataclass
 class ChunkerService:
-    docs_dir: str
+    docs_dir: Path
     chunk_size: int
     chunk_overlap: int
-    docs_limit: int
-    docs_dir: Path
+    docs_limit: int | None = None
 
     def build_chunks(self) -> list[DocumentChunk]:
         result: list[DocumentChunk] = []
-        documents = self.load_text_files(self.docs_dir, limit=self.docs_limit)
-
-        for doc_id, path, text in documents:
+        for doc_id, path, text in self.load_text_files(self.docs_dir, limit=self.docs_limit):
             title = self._first_line_title(text, fallback=doc_id)
             for index, chunk in enumerate(
                 self._chunk_for_embedding(
@@ -45,7 +35,6 @@ class ChunkerService:
                         text=chunk,
                     )
                 )
-
         return result
 
     def _chunk_for_embedding(
@@ -86,7 +75,6 @@ class ChunkerService:
     ) -> list[str]:
         if chunk_size <= 0:
             raise ValueError("chunk_size must be positive")
-
         if chunk_overlap < 0 or chunk_overlap >= chunk_size:
             raise ValueError("chunk_overlap must be in [0, chunk_size)")
 
@@ -101,12 +89,9 @@ class ChunkerService:
             chunk = normalized[start:end].strip()
             if chunk:
                 chunks.append(chunk)
-
             if end >= len(normalized):
                 break
-
             start = end - chunk_overlap
-
         return chunks
 
     def load_text_files(

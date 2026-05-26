@@ -3,22 +3,13 @@ from dataclasses import dataclass
 from qdrant_client.http.models import ScoredPoint
 from sentence_transformers import CrossEncoder
 
-
-@dataclass(frozen=True)
-class RankedHit:
-    point: ScoredPoint
-    vector_score: float
-    rerank_score: float
+from src.domain.models import RankedHit
 
 
 @dataclass
 class RerankerService:
     model: CrossEncoder
     model_name: str
-
-    @property
-    def model_name(self) -> str:
-        return self.model_name
 
     def rerank(
         self,

@@ -6,7 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
 from qdrant_client.http.models import ScoredPoint
 
-from src.documents import DocumentChunk
+from src.domain.models import DocumentChunk
 from src.services.retrieval_service import RetrievalService
 
 
@@ -16,8 +16,8 @@ def _point_id(doc_id: str, chunk_index: int) -> str:
 
 @dataclass
 class QdrantRepository:
-    collection_name: str
     client: QdrantClient
+    collection_name: str
     retrieval_service: RetrievalService
 
     def ensure_collection(self, *, vector_size: int, recreate: bool) -> None:
@@ -157,7 +157,10 @@ class QdrantRepository:
         keyword_hits = self.keyword_search(query_text, limit=limit, doc_id=doc_id)
         if not keyword_hits:
             return vector_hits
-        return self.retrieval_service.reciprocal_rank_fusion([vector_hits, keyword_hits], limit=limit)
+        return self.retrieval_service.reciprocal_rank_fusion(
+            [vector_hits, keyword_hits],
+            limit=limit,
+        )
 
     def collection_info(self) -> rest.CollectionInfo | None:
         if not self.client.collection_exists(self.collection_name):

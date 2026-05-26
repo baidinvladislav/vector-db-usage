@@ -4,12 +4,12 @@ from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
 from sentence_transformers import CrossEncoder
 
+from src.repositories.qdrant_repository import QdrantRepository
+from src.services.chunker_service import ChunkerService
 from src.services.embedder_service import EmbedderService
 from src.services.rag_service import RagService
-from src.services.chunker_service import ChunkerService
 from src.services.reranker_service import RerankerService
 from src.services.retrieval_service import RetrievalService
-from src.repositories.qdrant_repository import QdrantRepository
 from src.shared.settings import AppSettings
 
 
@@ -52,11 +52,11 @@ def init_app_container() -> AppContainer:
     )
 
     rag_service = RagService(
+        settings=app_settings,
         chunker_service=chunker_service,
         embedder_service=embedder_service,
         qdrant_repository=qdrant_repository,
         reranker_service=reranker_service,
-        retrieval_service=retrieval_service,
     )
 
     return AppContainer(

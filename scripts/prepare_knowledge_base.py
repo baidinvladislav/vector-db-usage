@@ -1,90 +1,39 @@
+#!/usr/bin/env python3
+"""CLI wrapper around POST /init-knowledge logic."""
+
 import argparse
 import sys
 from pathlib import Path
-
-from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.shared.settings import AppSettings  # noqa: E402
-from src.documents import build_chunks  # noqa: E402
-from src.services.embedder_service import EmbedderService  # noqa: E402
-from src.repositories.qdrant_repository import QdrantRepository  # noqa: E402
+from src.shared.container import init_app_container  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Prepare Qdrant knowledge base from text files.")
-
-    parser.add_argument(
-        "--recreate",
-        action="store_true",
-        help="Drop and recreate the collection before ingest.",
-    )
+    parser.add_argument("--recreate", action="store_true", help="Drop and recreate collection.")
     parser.add_argument(
         "--limit-docs",
         type=int,
         default=None,
-        help="Process only the first N documents (for quick tests).",
+        help="Process only the first N documents (overrides DOCS_LIMIT).",
     )
-
     return parser.parse_args()
 
 
 def main() -> None:
-    """ Векторизует документы в базу знаний """
     args = parse_args()
-    settings = AppSettings.from_env()
-    recreate = settings.recreate_collection or args.recreate
+    container = init_app_container()
 
-    if not settings.docs_dir.is_dir():
-        raise SystemExit(f"Docs directory not found: {settings.docs_dir}")
+    if args.limit_docs is not None:
+        container.rag_service.chunker_service.docs_limit = args.limit_docs
 
-    print(f"Loading documents from {settings.docs_dir} ...")
-    all_chunks = build_chunks(
-        docs_dir=settings.docs_dir,
-        chunk_size=settings.chunk_size,
-        chunk_overlap=settings.chunk_overlap,
-        limit=args.limit_docs,
-    )
-    if not all_chunks:
-        raise SystemExit(f"No .txt documents found in {settings.docs_dir}")
-
-    doc_count = len({c.doc_id for c in all_chunks})
-    print(f"Documents: {doc_count}, chunks: {len(all_chunks)}")
-
-    embedder = EmbedderService(settings.embedder_model)
-    store = QdrantRepository(
-        url=settings.qdrant_url,
-        api_key=settings.qdrant_api_key,
-        collection_name=settings.collection_name,
-    )
-    store.ensure_collection(
-        vector_size=embedder.vector_size(),
-        recreate=recreate,
-    )
-
-    total_upserted = 0
-    batch_size = settings.batch_size
-    for start in tqdm(
-        range(0, len(all_chunks), batch_size),
-        desc="Indexing",
-        unit="batch",
-    ):
-        batch = all_chunks[start : start + batch_size]
-        vectors = embedder.embed_passages([c.text for c in batch])
-        total_upserted += store.upsert_chunks(
-            chunks=batch,
-            vectors=vectors,
-            embedding_model=embedder.model_name,
-        )
-
-    info = store.collection_info()
-    points = info.points_count if info else total_upserted
+    result = container.rag_service.init_knowledge_base(recreate=args.recreate)
     print(
-        f"Done. Collection '{settings.collection_name}' at {settings.qdrant_url} "
-        f"— points: {points}"
+        f"Done. documents={result.documents}, chunks={result.chunks}, points={result.points}"
     )
 
 

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.presentation.api.routers.router import router
 
-app = FastAPI()
+app = FastAPI(title="Wikipedia RAG API")
 
 app.add_middleware(
     CORSMiddleware,
