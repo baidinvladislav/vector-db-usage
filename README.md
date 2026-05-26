@@ -7,7 +7,21 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-docker compose up -d
+docker compose up -d --build
+```
+
+Open **http://localhost:5173** (frontend), API at **http://localhost:8000**, Qdrant at **http://localhost:6333/dashboard**.
+
+```bash
+docker compose up -d --build    # start all services
+docker compose logs -f frontend # frontend logs
+docker compose down             # stop
+```
+
+If `npm install` fails during frontend build (network/proxy), the Dockerfile uses `registry.npmmirror.com` by default. Override:
+
+```bash
+docker compose build --build-arg NPM_REGISTRY=https://registry.npmjs.org frontend
 ```
 
 ## Подготовка базы знаний
@@ -48,6 +62,31 @@ python scripts/query_knowledge_base.py --query "длина реки Нева" --
 Результат показывает рейтинг, идентификатор документа и соответствующий чанк документа.
 
 Веб-интерфейс базы знаний Qdrant находится по адресу http://localhost:6333/dashboard.
+
+## Frontend
+
+React UI in `frontend/` — search, sources, index controls.
+
+```bash
+# terminal 1 — backend
+source .venv/bin/activate
+uvicorn src.presentation.api.app:app --reload --port 8000
+
+# terminal 2 — frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. Dev server proxies `/api` → `http://127.0.0.1:8000`.
+
+## API
+
+| Method | Path                         | Description                        |
+|--------|------------------------------|------------------------------------|
+| GET    | `/health`                    | Status + points count              |
+| POST   | `/init-knowledge`            | Index docs (`{"recreate": false}`) |
+| GET    | `/ask-rag?query=...&limit=5` | Search + rerank                    |
 
 ## Конфигурация
 Конфиги находятся в файле `.env.example`.

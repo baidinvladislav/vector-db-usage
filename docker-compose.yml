@@ -16,6 +16,16 @@ services:
     volumes:
       - ./files:/app/files:ro
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: rag-frontend
+    depends_on:
+      - backend-api
+    ports:
+      - "5173:80"
+
   qdrant:
     image: qdrant/qdrant:v1.12.5
     ports:
